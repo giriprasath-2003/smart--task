@@ -1,10 +1,12 @@
-#S3
+provider "aws" {
+  region = "us-east-1"
+}
+
+variable "bucket name" {
+  default = "frontend-giri"
+}
 
 resource "aws_s3_bucket" "s3" {
-  bucket = "devops-workflow-bucket"
+  bucket = "frontend-giri"
 
-  tags = {
-    Name        = "My bucket"
-    Environment = "Dev"
-  }
 }
