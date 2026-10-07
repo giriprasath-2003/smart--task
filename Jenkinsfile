@@ -54,7 +54,14 @@ pipeline {
              }
          }
       }   
-          
+          stage('Quality Gate') {
+              steps {
+                  timeout(time: 5, unit: 'MINUTES') {
+                      waitForQualityGate( abortPipeline: false, credentialsId: 'sonar-token')
+             }
+         }
+     }
+
            stage('using Terraform'){
                steps{
                    echo 'Creating AWS Service by Terraform'
