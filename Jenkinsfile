@@ -17,7 +17,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: 'git-creds',
-                    url: 'https://github.com/giriprasath-2003/devops-flow.git'
+                    url: 'https://github.com/giriprasath-2003/smart--task.git'
             }
          }
   
@@ -54,18 +54,12 @@ pipeline {
              }
          }
       }   
-           stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate( abortPipeline: true, credentialsId: 'sonar-token')
-                }
-            }
-        }
+          
            stage('using Terraform'){
                steps{
                    echo 'Creating AWS Service by Terraform'
                    sh '''
-                   cd terraform
+                   cd Terraform
                    terraform init
                    terraform plan
                    terraform apply -auto-approve
@@ -76,18 +70,14 @@ pipeline {
          stage('Terraform Outputs'){
              steps{
                  echo 'Mentioning terrafrom Variables...'
-                  sh 'cd terraform'
+                  dir('Terraform') {
                   script {
-                  env.S3_BUCKET= sh(
-                  script: "terraform output -raw s3_bucket_name", 
-                  returnStdout: true
-                  ).trim()
-            
-            
-                 sh '''
-                 echo "S3_BUCKET= ${env.S3_BUCKET}"
-
-             '''
+                  env.S3_BUCKET= "frontend-giri"
+                  env.CLOUDFRONT_DIST_ID= "E16ULL4FANY9XQ"
+                  echo "S3_BUCKET= ${env.S3_BUCKET}"
+                  echo "CLOUDFRONT_DIST_ID= ${env.CLOUDFRONT_DIST_ID}"
+             }
+         }
       }
     }
            stage('Deploy S3 Bucket'){
@@ -97,7 +87,7 @@ pipeline {
                   aws s3 sync frontend/dist/ \
                   s3://${S3_BUCKET}/ \
                   --delete \
-                  --region us-east-1
+                  --region $AWS_DEFAULT_REGION
                   '''
                   echo 'Frontend Uploaded Successfully'
        }      
@@ -107,7 +97,7 @@ pipeline {
                 echo 'Deploying...'
                 sh ''' 
                   aws cloudfront create-invalidation \
-                  --distribution-id ${CLOUDFRONT_DIST_ID} \
+                  --distribution-id E16ULL4FANY9XQ \
                   --paths "/*"
                   '''
   
@@ -115,11 +105,4 @@ pipeline {
      }
   }
 } 
-       stage('Build Docker Images'){
-           steps{
-               echo "Building Images"
-               sh '''
-               docker compose up -d
-               '''
-     }
-   }  
+      
