@@ -41,9 +41,10 @@ pipeline {
             steps {
                 script {
                     def scannerhome = tool name: 'sonarqube', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-                    
-                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    sh """
+
+                withSonarQubeEnv('sonarqube') {    
+                   withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                      sh """
                             ${scannerhome}/bin/sonar-scanner \
                             -Dsonar.projectKey=frontend \
                             -Dsonar.sources=frontend \
