@@ -61,6 +61,7 @@ pipeline {
                    sh '''
                    cd Terraform
                    terraform init
+                   terraform import aws_s3_bucket.s3 frontend-giri || true  
                    terraform plan
                    terraform apply -auto-approve
                    '''
