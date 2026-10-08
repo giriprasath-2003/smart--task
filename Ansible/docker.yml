@@ -25,8 +25,9 @@
           - curl
         state: present
         update_cache: yes
-        
-      - name: Create Docker keyrings directory
+
+
+    - name: Create Docker keyrings directory
       file:
         path: /etc/apt/keyrings
         state: directory
@@ -57,8 +58,8 @@
           Components: stable
           Architectures: amd64
           Signed-By: /etc/apt/keyrings/docker.asc
-          
-        - name: Update APT cache
+
+    - name: Update APT cache
       apt:
         update_cache: yes
 
@@ -94,7 +95,5 @@
         msg:
           - "{{ docker_version.stdout }}"
           - "{{ compose_version.stdout }}"
-
-   
    
 
