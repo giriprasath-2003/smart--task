@@ -1,0 +1,19 @@
+hostname:18.208.228.77
+
+http:
+  port:80
+  
+harbor_admin_password:
+"HarborAdmin@123"
+
+database:
+  password:"HarborDB@123"
+  
+data_volume:/data
+
+log:
+  level:info
+  local:
+    rotate_count:50
+    rotate_size:200M
+    location: /var/log/harbor

@@ -1,0 +1,49 @@
+--
+- name: Install Minikube on Ubuntu EC2
+  hosts: kubernetes-server
+  become: yes
+  vars:
+    minikube_version: "v1.33.1"
+    kubectl_version: "v1.30.0"
+  tasks:
+    - name: Install dependencies
+      apt:
+        name: [curl, wget, apt-transport-https, conntrack]
+        state: present
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+
+    - name: Install kubectl
+      get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+
+    - name: Download Minikube
+      get_url:
+        url: "https://storage.googleapis.com/minikube/releases/{{ minikube_version }}/minikube-linux-amd64"
+        dest: /tmp/minikube
+        mode: '0755'
+     
+     - name: Install Minikube
+      copy:
+        src: /tmp/minikube
+        dest: /usr/local/bin/minikube
+        remote_src: yes
+        mode: '0755'
+
+    - name: Start Minikube with Docker driver
+      become_user: ubuntu
+      shell: sg docker -c " minikube start --driver=docker --memory=1700 --cpus=2 --force"
+
+    - name: Enable Minikube addons
+      become_user: ubuntu
+      shell: |
+        minikube addons enable metrics-server
+        minikube addons enable ingress
+

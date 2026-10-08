@@ -1,0 +1,89 @@
+---
+- name: Install Harbor
+  hosts: harbor-server
+  become: yes
+  gather_facts: yes
+
+  vars:
+    harbor_version: "v2.12.2"
+    harbor_dir: "/opt/harbor"
+    harbor_tar: "/tmp/harbor.tgz"
+    harbor_url: "https://github.com/goharbor/harbor/releases/download/{{ harbor_version }}/harbor-offline-installer-{{ harbor_version }}.tgz"
+
+  tasks:
+    - name: Check Docker
+      command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Show Docker version
+      debug:
+        msg: "{{ docker_version.stdout }}"
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - wget
+          - tar
+          - openssl
+        state: present
+        update_cache: yes
+
+    - name: Install docker-compose v2
+      shell: |
+        mkdir -p /usr/local/lib/docker/cli-plugins
+        curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+        chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+        ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+      args:
+        creates: /usr/local/bin/docker-compose
+
+    - name: Download Harbor
+      get_url:
+        url: "{{ harbor_url }}"
+        dest: "{{ harbor_tar }}"
+        mode: "0644"
+
+    - name: Create Harbor directory
+      file:
+        path: "{{ harbor_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Extract Harbor
+      unarchive:
+        src: "{{ harbor_tar }}"
+        dest: "{{ harbor_dir }}"
+        remote_src: yes
+        extra_opts:
+          - "--strip-components=1"
+
+    - name: Create Harbor configuration
+      template:
+        src: harbor.yml.j2
+        dest: "{{ harbor_dir }}/harbor.yml"
+        mode: "0644"
+
+    - name: Run Harbor installer
+      shell: |
+        export TERM=xterm
+        ./install.sh --no-tls
+      args:
+        chdir: "{{ harbor_dir }}"
+      async: 600
+      poll: 20
+
+    - name: Check Harbor containers
+      command: docker ps
+      register: harbor_containers
+      changed_when: false
+
+    - name: Display Harbor containers
+      debug:
+        var: harbor_containers.stdout_lines

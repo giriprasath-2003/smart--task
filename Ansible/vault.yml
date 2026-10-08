@@ -1,0 +1,51 @@
+---
+- name: Install HashiCorp Vault
+  hosts: vault-server
+  become: yes
+
+  tasks:
+
+    - name: Install required packages
+      apt:
+        name:
+          - wget
+          - gpg
+        state: present
+        update_cache: yes
+
+    - name: Add HashiCorp GPG key
+      shell: |
+        wget -O- https://apt.releases.hashicorp.com/gpg | \
+        gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+    - name: Add HashiCorp repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        state: present
+        filename: hashicorp
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Vault
+      apt:
+        name: vault
+        state: present
+
+    - name: Enable and start Vault
+      systemd:
+        name: vault
+        enabled: yes
+        state: started
+
+    - name: Check Vault service
+      command: systemctl is-active vault
+      register: vault_status
+      changed_when: false
+
+    - name: Display Vault status
+      debug:
+        msg: "Vault service status: {{ vault_status.stdout }}"
