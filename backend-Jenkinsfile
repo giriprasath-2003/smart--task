@@ -20,21 +20,28 @@ pipeline {
             }
         }
         
-       stage('Ansible'){
-          steps{
-            dir('Ansible'){
-              sshagent(['ec2-ssh-key']){
-                echo 'installing Software using ansible'
-                sh '''
-                  ansible --version
-                  ansible-playbook -i inventory.ini docker.yml
-                  ansible-playbook -i inventory.ini kube.yml
-                 
-                  
-                '''
-              }
+        stage('SonarQube Analysis') {
+
+            steps {
+
+                echo 'Running SonarQube analysis...'
+
+                script {
+                   def scannerhome = tool( name: 'sonarqube', type: 'hudson.plugins.sonar.SonarRunnerInstallation')
+                    echo "SonarScanner Home: ${scannerhome}"
+                    withSonarQubeEnv('sonarqube'){
+                      withCredentials([string(credentialsId: 'backend', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            ${scannerhome}/bin/sonar-scanner \
+                            -Dsonar.projectKey= backend  \
+                            -Dsonar.sources=api-gateway_1784010924579,auth-service_1784011000189,notification-service,report-service,task-service
+
+                        """
+                        }
+                    }
+                }
             }
-          }
         }
-   }
-}    
+        
+        
+        
