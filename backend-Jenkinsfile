@@ -33,9 +33,9 @@ pipeline {
                       withCredentials([string(credentialsId: 'backend', variable: 'SONAR_TOKEN')]) {
                         sh """
                             ${scannerhome}/bin/sonar-scanner \
-                            -Dsonar.projectKey= backend  \
+                            -Dsonar.projectKey=backend  \
                             -Dsonar.sources=api-gateway_1784010924579,auth-service_1784011000189,notification-service,report-service,task-service
-
+                            -Dsonar.exclusions=**/node_modules/**,**/frontend/**
                         """
                         }
                     }
