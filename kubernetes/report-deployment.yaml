@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-service
+  namespace: smart-task
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-service
+  template:
+    metadata:
+      labels:
+        app: report-service
+    spec:
+      imagePullSecrets:
+        - name: harbor-secret
+      containers:
+        - name: report-service
+          image: 18.208.228.77:8081/smart-task-k8/report-service:latest
+          ports:
+            - containerPort: 5004
+          env:
+            - name: PORT
+              value: "5004"
+            - name: MONGO_URI
+              value: "mongodb://mongodb:27017/reportdb"
+            - name: JWT_SECRET
+              value: "MySecret@123"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-service
+  namespace: smart-task
+spec:
+  selector:
+    app: report-service
+  ports:
+    - port: 5004
+      targetPort: 5004
