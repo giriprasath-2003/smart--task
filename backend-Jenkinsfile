@@ -9,7 +9,7 @@ pipeline {
         EC2_USER    = 'ubuntu'
         EC2_APP_DIR = '/home/ubuntu/smart--task'
         
-        GIT_REPO    = 'https://github.com/giriprasath-2003/smart--task.git
+        GIT_REPO    = 'https://github.com/giriprasath-2003/smart--task.git'
         GIT_BRANCH  = 'main'
 
         HARBOR_URL     = '18.208.228.77:8081'
