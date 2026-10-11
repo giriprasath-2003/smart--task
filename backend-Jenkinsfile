@@ -5,13 +5,15 @@ pipeline {
         AWS_CREDENTIALS= credentials('aws-id')
         AWS_REGION= 'us-east-1'
         
-        DOCKER_HUB_USER = 'giriprasathp'
-        DOCKER_TAG = "v${BUILD_NUMBER}"
-        
-        EC2_HOST = '18.208.228.77'
-        EC2_USER = 'ubuntu'
-        
-    }
+        EC2_HOST    = '18.208.228.77'
+        EC2_USER    = 'ubuntu'
+        EC2_APP_DIR = '/home/ubuntu/'smart--task
+
+        HARBOR_URL     = '18.208.228.77:8081'
+        HARBOR_PROJECT = 'smart-task'
+
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }        
 
     stages {
         stage('Checkout') {
@@ -35,14 +37,126 @@ pipeline {
                             ${scannerhome}/bin/sonar-scanner \
                             -Dsonar.projectKey=backend  \
                             -Dsonar.sources=api-gateway_1784010924579,auth-service_1784011000189,notification-service,report-service,task-service
-                            -Dsonar.exclusions=**/node_modules/**,**/frontend/**,**/Terraform/**
+                            -Dsonar.exclusions=**/node_modules/**,**/frontend/**
                         """
                         }
                     }
                 }
             }
         }
+
+        stage('Sync Code to EC2') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                            set -e
+                            if [ ! -d ${EC2_APP_DIR}/.git ]; then
+                                git clone -b ${GIT_BRANCH} ${GIT_REPO} ${EC2_APP_DIR}
+                            fi
+                            cd ${EC2_APP_DIR}
+                            git fetch origin ${GIT_BRANCH}
+                            git reset --hard origin/${GIT_BRANCH}
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Harbor Login') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'harbor-credentials',
+                        usernameVariable: 'HARBOR_USER',
+                        passwordVariable: 'HARBOR_PASSWORD'
+                    )]) {
+                        sh '''
+                            echo "$HARBOR_PASSWORD" | ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST \
+                            "docker login $HARBOR_URL -u $HARBOR_USER --password-stdin"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                            set -e
+                            cd ${EC2_APP_DIR}
+
+                            docker build -t ${HARBOR_URL}/${HARBOR_PROJECT}/api-gateway:${IMAGE_TAG} -t ${HARBOR_URL}/${HARBOR_PROJECT}/api-         gateway:latest ./api-gateway_1784010924579/
+                            docker build -t ${HARBOR_URL}/${HARBOR_PROJECT}/auth-service:${IMAGE_TAG} -t ${HARBOR_URL}/${HARBOR_PROJECT}/auth-    service:latest ./auth-service_1784011000189/
+                            docker build -t ${HARBOR_URL}/${HARBOR_PROJECT}/task-service:${IMAGE_TAG} -t ${HARBOR_URL}/${HARBOR_PROJECT}/task-service:latest ./task-service/
+                            docker build -t ${HARBOR_URL}/${HARBOR_PROJECT}/notification-service:${IMAGE_TAG} -t ${HARBOR_URL}/${HARBOR_PROJECT}/notification-service:latest ./notification-service/
+                            docker build -t ${HARBOR_URL}/${HARBOR_PROJECT}/report-service:${IMAGE_TAG} -t ${HARBOR_URL}/${HARBOR_PROJECT}/report-   service:latest ./report-service/
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Push Images to Harbor') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                            set -e
+                            for svc in api-gateway auth-service task-service notification-service report-service; do
+                                docker push ${HARBOR_URL}/${HARBOR_PROJECT}/\$svc:${IMAGE_TAG}
+                                docker push ${HARBOR_URL}/${HARBOR_PROJECT}/\$svc:latest
+                            done
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                            set -e
+                            cd ${EC2_APP_DIR}/kubernetes
+                            kubectl apply -f namespace.yaml
+                            kubectl apply -f mongodb-deployment.yaml
+                            kubectl apply -f auth-deployment.yaml
+                            kubectl apply -f task-deployment.yaml
+                            kubectl apply -f notificatio-deployment.yaml
+                            kubectl apply -f report-deployment.yaml
+                            kubectl apply -f api-gateway-deployment.yaml
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Verify Kubernetes Deployment') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                            kubectl get pods -n smart-task
+                            kubectl get services -n smart-task
+                            kubectl get deployments -n smart-task
+                        '
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "Build ${BUILD_NUMBER}: deployed successfully." }
+        failure { echo "Build ${BUILD_NUMBER}: failed. Check the console output." }
+    }
+}
       }  
+      
      
    }  
         
