@@ -128,7 +128,7 @@ pipeline {
                             kubectl apply -f mongodb-deployment.yaml
                             kubectl apply -f auth-deployment.yaml
                             kubectl apply -f task-deployment.yaml
-                            kubectl apply -f notificatio-deployment.yaml
+                            kubectl apply -f notification-deployment.yaml
                             kubectl apply -f report-deployment.yaml
                             kubectl apply -f api-gateway-deployment.yaml
                         '
