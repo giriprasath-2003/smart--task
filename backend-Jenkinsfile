@@ -7,7 +7,10 @@ pipeline {
         
         EC2_HOST    = '18.208.228.77'
         EC2_USER    = 'ubuntu'
-        EC2_APP_DIR = '/home/ubuntu/'smart--task
+        EC2_APP_DIR = '/home/ubuntu/smart--task'
+        
+        GIT_REPO    = 'https://github.com/giriprasath-2003/smart--task.git
+        GIT_BRANCH  = 'main'
 
         HARBOR_URL     = '18.208.228.77:8081'
         HARBOR_PROJECT = 'smart-task'
@@ -37,7 +40,6 @@ pipeline {
                             ${scannerhome}/bin/sonar-scanner \
                             -Dsonar.projectKey=backend  \
                             -Dsonar.sources=api-gateway_1784010924579,auth-service_1784011000189,notification-service,report-service,task-service
-                            -Dsonar.exclusions=**/node_modules/**,**/frontend/**
                         """
                         }
                     }
@@ -155,9 +157,6 @@ pipeline {
         failure { echo "Build ${BUILD_NUMBER}: failed. Check the console output." }
     }
 }
-      }  
-      
-     
-   }  
+
         
         
