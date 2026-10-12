@@ -17,7 +17,7 @@ spec:
         - name: harbor-secret
       containers:
         - name: report-service
-          image: 18.208.228.77:8081/smart-task-k8/report-service:latest
+          image: 18.208.228.77:8081/smart-task/report-service:latest
           ports:
             - containerPort: 5004
           env:
