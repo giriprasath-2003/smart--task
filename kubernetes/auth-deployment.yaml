@@ -17,7 +17,7 @@ spec:
         - name: harbor-secret
       containers:
         - name: auth-service
-          image: 18.208.228.77:8081/smart-task-k8/auth-service:latest
+          image: 18.208.228.77:8081/smart-task/auth-service:latest
           ports:
             - containerPort: 5001
           env:
