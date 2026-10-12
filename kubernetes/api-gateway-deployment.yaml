@@ -17,7 +17,7 @@ spec:
         - name: harbor-secret
       containers:
         - name: api-gateway
-          image: 18.208.228.77:8081/smart--task/api-gateway:latest
+          image: 18.208.228.77:8081/smart-task/api-gateway:latest
           ports:
             - containerPort: 5000
           env:
